@@ -1,28 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Bot, User, Loader, Settings, Zap, Brain } from 'lucide-react';
+import { Send, Bot, User, Loader, Copy, Check, ThumbsUp, ThumbsDown } from 'lucide-react';
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
-  thinking?: boolean;
 }
 
 const ChatInterface: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: 'Hello! I\'m GLM-4.5, an advanced AI model designed for intelligent agents. I can help you with reasoning, coding, and complex problem-solving. What would you like to explore today?',
-      timestamp: new Date()
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [thinkingMode, setThinkingMode] = useState(true);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -31,6 +23,13 @@ const ChatInterface: React.FC = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [input]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -51,9 +50,8 @@ const ChatInterface: React.FC = () => {
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `I understand you're asking about "${input}". As GLM-4.5, I can provide comprehensive analysis and solutions. This is a demo interface - in a real implementation, I would process your request using my ${thinkingMode ? 'thinking mode for complex reasoning' : 'immediate response mode'} and provide detailed, helpful responses.`,
-        timestamp: new Date(),
-        thinking: thinkingMode
+        content: `I understand you're asking about "${userMessage.content}". As GLM-4.5, I'm designed to help with complex reasoning, coding, and problem-solving tasks. I can assist you with a wide range of topics including:\n\n• Technical questions and programming\n• Data analysis and interpretation\n• Creative writing and content generation\n• Research and information synthesis\n• Mathematical and logical reasoning\n\nHow can I help you further with this topic?`,
+        timestamp: new Date()
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -68,150 +66,166 @@ const ChatInterface: React.FC = () => {
     }
   };
 
+  const copyToClipboard = (text: string, messageId: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedMessageId(messageId);
+    setTimeout(() => setCopiedMessageId(null), 2000);
+  };
+
+  const formatMessage = (content: string) => {
+    return content.split('\n').map((line, index) => (
+      <React.Fragment key={index}>
+        {line}
+        {index < content.split('\n').length - 1 && <br />}
+      </React.Fragment>
+    ));
+  };
+
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
-      >
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <Bot className="w-6 h-6" />
+    <div className="flex-1 flex flex-col">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto">
+        {messages.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center p-8">
+            <div className="text-center max-w-md">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <Bot className="w-8 h-8 text-white" />
               </div>
-              <div>
-                <h2 className="text-xl font-bold">GLM-4.5 Chat</h2>
-                <p className="text-blue-100 text-sm">Advanced AI Assistant</p>
+              <h2 className="text-2xl font-semibold text-gray-900 mb-3">
+                Welcome to GLM-4.5
+              </h2>
+              <p className="text-gray-600 mb-6">
+                I'm an advanced AI model designed for intelligent agents. I can help you with reasoning, coding, and complex problem-solving.
+              </p>
+              <div className="grid grid-cols-1 gap-3">
+                <button
+                  onClick={() => setInput("Explain quantum computing in simple terms")}
+                  className="p-3 text-left text-sm text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Explain quantum computing in simple terms
+                </button>
+                <button
+                  onClick={() => setInput("Help me debug this Python code")}
+                  className="p-3 text-left text-sm text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Help me debug this Python code
+                </button>
+                <button
+                  onClick={() => setInput("Write a creative story about AI")}
+                  className="p-3 text-left text-sm text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Write a creative story about AI
+                </button>
               </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <motion.button
-                onClick={() => setThinkingMode(!thinkingMode)}
-                className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  thinkingMode 
-                    ? 'bg-white/20 text-white' 
-                    : 'bg-white/10 text-blue-100 hover:bg-white/20'
-                }`}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                {thinkingMode ? <Brain className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
-                <span>{thinkingMode ? 'Thinking Mode' : 'Fast Mode'}</span>
-              </motion.button>
-              <Settings className="w-5 h-5 text-blue-100 hover:text-white cursor-pointer transition-colors" />
             </div>
           </div>
-        </div>
-
-        {/* Messages */}
-        <div className="h-96 overflow-y-auto p-6 space-y-4">
-          <AnimatePresence>
+        ) : (
+          <div className="p-4 space-y-6 max-w-3xl mx-auto">
             {messages.map((message) => (
-              <motion.div
-                key={message.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div className={`flex items-start space-x-3 max-w-xs lg:max-w-md ${
-                  message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''
-                }`}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              <div key={message.id} className="group">
+                <div className="flex items-start space-x-4">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                     message.role === 'user' 
                       ? 'bg-blue-600 text-white' 
                       : 'bg-gradient-to-br from-purple-500 to-blue-500 text-white'
                   }`}>
                     {message.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                   </div>
-                  <div className={`rounded-2xl px-4 py-3 ${
-                    message.role === 'user'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-900'
-                  }`}>
-                    {message.thinking && (
-                      <div className="flex items-center space-x-2 mb-2 text-xs text-purple-600">
-                        <Brain className="w-3 h-3" />
-                        <span>Thinking mode active</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <span className="text-sm font-medium text-gray-900">
+                        {message.role === 'user' ? 'You' : 'GLM-4.5'}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {message.timestamp.toLocaleTimeString()}
+                      </span>
+                    </div>
+                    <div className="prose prose-sm max-w-none text-gray-800 leading-relaxed">
+                      {formatMessage(message.content)}
+                    </div>
+                    {message.role === 'assistant' && (
+                      <div className="flex items-center space-x-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => copyToClipboard(message.content, message.id)}
+                          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="Copy message"
+                        >
+                          {copiedMessageId === message.id ? (
+                            <Check className="w-4 h-4 text-green-600" />
+                          ) : (
+                            <Copy className="w-4 h-4 text-gray-500" />
+                          )}
+                        </button>
+                        <button
+                          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="Good response"
+                        >
+                          <ThumbsUp className="w-4 h-4 text-gray-500" />
+                        </button>
+                        <button
+                          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="Bad response"
+                        >
+                          <ThumbsDown className="w-4 h-4 text-gray-500" />
+                        </button>
                       </div>
                     )}
-                    <p className="text-sm leading-relaxed">{message.content}</p>
-                    <div className={`text-xs mt-2 ${
-                      message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
-                    }`}>
-                      {message.timestamp.toLocaleTimeString()}
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-
-          {isLoading && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex justify-start"
-            >
-              <div className="flex items-start space-x-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 text-white flex items-center justify-center">
-                  <Bot className="w-4 h-4" />
-                </div>
-                <div className="bg-gray-100 rounded-2xl px-4 py-3">
-                  <div className="flex items-center space-x-2">
-                    <Loader className="w-4 h-4 animate-spin text-gray-600" />
-                    <span className="text-sm text-gray-600">GLM-4.5 is thinking...</span>
                   </div>
                 </div>
               </div>
-            </motion.div>
-          )}
+            ))}
 
-          <div ref={messagesEndRef} />
-        </div>
+            {isLoading && (
+              <div className="group">
+                <div className="flex items-start space-x-4">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 text-white flex items-center justify-center flex-shrink-0">
+                    <Bot className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <span className="text-sm font-medium text-gray-900">GLM-4.5</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Loader className="w-4 h-4 animate-spin text-gray-600" />
+                      <span className="text-sm text-gray-600">Thinking...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
-        {/* Input */}
-        <div className="border-t border-gray-200 p-4">
-          <div className="flex items-end space-x-3">
-            <div className="flex-1">
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Ask GLM-4.5 anything..."
-                className="w-full resize-none border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                rows={1}
-                style={{ minHeight: '44px', maxHeight: '120px' }}
-              />
-            </div>
-            <motion.button
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+      </div>
+
+      {/* Input */}
+      <div className="border-t border-gray-200 p-4">
+        <div className="max-w-3xl mx-auto">
+          <div className="relative">
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Message GLM-4.5..."
+              className="w-full resize-none border border-gray-300 rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              rows={1}
+              style={{ minHeight: '52px', maxHeight: '200px' }}
+            />
+            <button
               onClick={handleSend}
               disabled={!input.trim() || isLoading}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              className="absolute right-3 bottom-3 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Send className="w-5 h-5" />
-            </motion.button>
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="text-xs text-gray-500 text-center mt-2">
+            GLM-4.5 can make mistakes. Consider checking important information.
           </div>
         </div>
-      </motion.div>
-
-      {/* Demo Notice */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200"
-      >
-        <p className="text-sm text-blue-700 text-center">
-          <strong>Demo Interface:</strong> This is a frontend demonstration. 
-          To connect to a real GLM-4.5 model, integrate with the API endpoints described in the documentation.
-        </p>
-      </motion.div>
+      </div>
     </div>
   );
 };
